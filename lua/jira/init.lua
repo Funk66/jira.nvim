@@ -1,4 +1,4 @@
-local http = require("http")
+local curl = require("plenary.curl")
 local Utils = require("jira.utils")
 
 ---@class JiraConfig
@@ -10,19 +10,18 @@ local config = {
 }
 
 ---@param issue_id string
----@param callback function
-local function get_issue(issue_id, callback)
-	http.request({
-		http.methods.GET,
-		"https://" .. config.domain .. "/rest/api/3/issue/" .. issue_id,
-		nil,
-		nil,
+local function get_issue(issue_id)
+	local response = curl.get("https://" .. config.domain .. "/rest/api/3/issue/" .. issue_id, {
 		headers = {
-			["content-type"] = "application/json",
-			Authorization = "Basic " .. Utils.b64encode(config.user .. ":" .. config.token),
+			["Content-Type"] = "application/json",
+			["Authorization"] = "Basic " .. Utils.b64encode(config.user .. ":" .. config.token),
 		},
-		callback = callback,
 	})
+	if response.status < 400 then
+		return vim.fn.json_decode(response.body)
+	else
+		print("Non 200 response: " .. response.status)
+	end
 end
 
 local Jira = {}
@@ -44,38 +43,27 @@ end
 
 function Jira.view_issue()
 	local issue_id = Jira.parse_issue() or vim.fn.input("Issue: ")
-	get_issue(issue_id, function(err, resp)
-		if err then
-			print("Error: " .. err)
+	local issue = get_issue(issue_id)
+	vim.schedule(function()
+		if issue == nil then
+			print("Invalid response")
 			return
 		end
-		if resp.code < 400 then
-			vim.schedule(function()
-				local issue = vim.fn.json_decode(resp.body)
-				if issue == nil then
-					print("Invalid response")
-					return
-				end
-				local assignee = ""
-				if issue.fields.assignee ~= vim.NIL then
-					local i, j = string.find(issue.fields.assignee.displayName, "%w+")
-					if i ~= nil then
-						assignee = " - @" .. string.sub(issue.fields.assignee.displayName, i, j)
-					end
-				end
-				local content = {
-					issue.fields.summary,
-					"---",
-					"`" .. issue.fields.status.name .. "`" .. assignee,
-					"",
-					Utils.adf_to_markdown(issue.fields.description),
-				}
-
-				vim.lsp.util.open_floating_preview(content, "markdown", { border = "rounded" })
-			end)
-		else
-			print("Non 200 response: " .. resp.code)
+		local assignee = ""
+		if issue.fields.assignee ~= vim.NIL then
+			local i, j = string.find(issue.fields.assignee.displayName, "%w+")
+			if i ~= nil then
+				assignee = " - @" .. string.sub(issue.fields.assignee.displayName, i, j)
+			end
 		end
+		local content = {
+			issue.fields.summary,
+			"---",
+			"`" .. issue.fields.status.name .. "`" .. assignee,
+			"",
+			Utils.adf_to_markdown(issue.fields.description),
+		}
+		vim.lsp.util.open_floating_preview(content, "markdown", { border = "rounded" })
 	end)
 end
 
