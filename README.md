@@ -9,7 +9,7 @@
 ```lua
 return {
   "Funk66/jira.nvim",
-  dependencies = { "nvim-lua/plenary" },
+  dependencies = { "nvim-lua/plenary.nvim" },
   config = function()
     require("jira").setup()
   end,
