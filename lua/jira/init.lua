@@ -78,19 +78,13 @@ function Jira.parse_issue()
 	return string.sub(current_word, i, j)
 end
 
-vim.keymap.set("n", "<leader>jv", function()
-	Jira.view_issue()
-end)
-
-vim.keymap.set("n", "<leader>jo", function()
-	Jira.open_issue()
-end)
-
 ---@param opts? JiraConfig
 ---@return JiraConfig
 function Jira.setup(opts)
 	opts = opts or {}
 	config = vim.tbl_deep_extend("force", config, opts)
+	vim.api.nvim_create_user_command("JiraView", Jira.view_issue, {})
+	vim.api.nvim_create_user_command("JiraOpen", Jira.open_issue, {})
 	return config
 end
 
