@@ -29,6 +29,12 @@ local Jira = {}
 function Jira.open_issue()
 	local issue_id = Jira.parse_issue() or vim.fn.input("Issue: ")
 	local url = "https://" .. config.domain .. "/browse/" .. issue_id
+
+	if vim.ui.open then
+		vim.ui.open(url)
+		return
+	end
+
 	local os_name = vim.loop.os_uname().sysname
 	local is_windows = vim.loop.os_uname().version:match("Windows")
 
