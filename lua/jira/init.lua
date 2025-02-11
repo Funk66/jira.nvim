@@ -2,12 +2,24 @@ local curl = require("plenary.curl")
 local Utils = require("jira.utils")
 
 ---@class JiraConfig
+---@field domain string
+---@field user string
+---@field token string
+---@field key string | string[]
 local config = {
 	domain = vim.env.JIRA_DOMAIN,
 	user = vim.env.JIRA_USER,
 	token = vim.env.JIRA_API_TOKEN,
-	key = vim.env.JIRA_PROJECT_KEY or "PM",
+	key = vim.env.JIRA_PROJECT_KEY or { "PM" },
 }
+
+---@return string[]
+local function get_keys()
+	if type(config.key) == "string" then
+		return vim.tbl_map(vim.trim, vim.split(config.key, ","))
+	end
+	return config.key ---@type string[]
+end
 
 ---@param issue_id string
 local function get_issue(issue_id)
@@ -76,12 +88,13 @@ end
 ---@return string | nil
 function Jira.parse_issue()
 	local current_word = vim.fn.expand("<cWORD>")
-	local i, j = string.find(current_word, config.key .. "%-%d+")
-	if i == nil then
-		return nil
+	for _, key in ipairs(get_keys()) do
+		local i, j = string.find(current_word, key .. "%-%d+")
+		if i ~= nil then
+			return string.sub(current_word, i, j)
+		end
 	end
-
-	return string.sub(current_word, i, j)
+	return nil
 end
 
 ---@param opts? JiraConfig

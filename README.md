@@ -29,7 +29,7 @@ You can either provide your Jira credentials as environment variables
 export JIRA_DOMAIN=myproject.atlassian.net
 export JIRA_USER=godzilla@github.com
 export JIRA_API_TOKEN=...
-export JIRA_PROJECT_KEY=DEMO
+export JIRA_PROJECT_KEY=DEMO,PROJ
 ```
 
 or as options to the setup function.
@@ -39,7 +39,7 @@ require("jira").setup({
   domain = "myproject.atlassian.net",
   user = "godzilla@github.com",
   token = "...",
-  key = "DEMO",
+  key = {"DEMO", "PROJ"},
 })
 ```
 
