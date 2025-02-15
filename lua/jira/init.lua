@@ -6,6 +6,7 @@ local Utils = require("jira.utils")
 ---@field user string
 ---@field token string
 ---@field key string | string[]
+---@field format? fun(issue: table): string[]
 local config = {
 	domain = vim.env.JIRA_DOMAIN,
 	user = vim.env.JIRA_USER,
@@ -34,6 +35,26 @@ local function get_issue(issue_id)
 	else
 		print("Non 200 response: " .. response.status)
 	end
+end
+
+-- @param issue table
+-- @returns string[]
+local function format_issue(issue)
+	local assignee = ""
+	if issue.fields.assignee ~= vim.NIL then
+		local i, j = string.find(issue.fields.assignee.displayName, "%w+")
+		if i ~= nil then
+			assignee = " - @" .. string.sub(issue.fields.assignee.displayName, i, j)
+		end
+	end
+	local content = {
+		issue.fields.summary,
+		"---",
+		"`" .. issue.fields.status.name .. "`" .. assignee,
+		"",
+		Utils.adf_to_markdown(issue.fields.description),
+	}
+	vim.lsp.util.open_floating_preview(content, "markdown", { border = "rounded" })
 end
 
 local Jira = {}
@@ -67,20 +88,8 @@ function Jira.view_issue()
 			print("Invalid response")
 			return
 		end
-		local assignee = ""
-		if issue.fields.assignee ~= vim.NIL then
-			local i, j = string.find(issue.fields.assignee.displayName, "%w+")
-			if i ~= nil then
-				assignee = " - @" .. string.sub(issue.fields.assignee.displayName, i, j)
-			end
-		end
-		local content = {
-			issue.fields.summary,
-			"---",
-			"`" .. issue.fields.status.name .. "`" .. assignee,
-			"",
-			Utils.adf_to_markdown(issue.fields.description),
-		}
+		local format = config.format or format_issue
+		local content = format(issue)
 		vim.lsp.util.open_floating_preview(content, "markdown", { border = "rounded" })
 	end)
 end
