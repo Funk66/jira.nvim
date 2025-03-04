@@ -57,7 +57,8 @@ function Utils.adf_to_markdown(adt)
 
 		local top_level_block_nodes_to_markdown = {
 			codeBlock = function(node)
-				node_md = "```" .. node.attrs.language .. "\n"
+				local language = node.attrs.language or ""
+				node_md = "```" .. language .. "\n"
 				for _, v in ipairs(node.content) do
 					node_md = node_md .. adf_node_to_markdown(v)
 				end
