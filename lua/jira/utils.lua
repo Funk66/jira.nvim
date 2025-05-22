@@ -245,15 +245,14 @@ function Utils.adf_to_markdown(adt)
 			end,
 		}
 
+		if not adf_node.content then
+			adf_node.content = {}
+		end
 		if inline_nodes[adf_node.type] then
 			node_md = node_md .. inline_nodes_to_markdown[adf_node.type](adf_node)
 		elseif top_level_block_nodes_to_markdown[adf_node.type] then
 			node_md = node_md .. top_level_block_nodes_to_markdown[adf_node.type](adf_node)
 		else
-			if not adf_node.content then
-				print("Unknown node type: " .. adf_node.type)
-				return node_md
-			end
 			node_md = ""
 			for _, v in ipairs(adf_node.content) do
 				node_md = node_md .. adf_node_to_markdown(v)
