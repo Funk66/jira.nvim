@@ -248,6 +248,9 @@ function Utils.adf_to_markdown(adt)
 		if not adf_node.content then
 			adf_node.content = {}
 		end
+		if not adf_node.attrs then
+			adf_node.attrs = {}
+		end
 		if inline_nodes[adf_node.type] then
 			node_md = node_md .. inline_nodes_to_markdown[adf_node.type](adf_node)
 		elseif top_level_block_nodes_to_markdown[adf_node.type] then
