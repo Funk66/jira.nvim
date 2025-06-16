@@ -3,15 +3,19 @@ local Utils = require("jira.utils")
 
 ---@class JiraConfig
 ---@field domain string
----@field user string
 ---@field token string
 ---@field key string | string[]
+---@field api_version? number
 ---@field format? fun(issue: table): string[]
+---@field auth_type? "Basic" | "Bearer"
+---@field user? string
 local config = {
 	domain = vim.env.JIRA_DOMAIN,
 	user = vim.env.JIRA_USER,
 	token = vim.env.JIRA_API_TOKEN,
 	key = vim.env.JIRA_PROJECT_KEY or { "PM" },
+	api_version = 3,
+	auth_type = "Basic",
 }
 
 ---@return string[]
@@ -24,11 +28,16 @@ end
 
 ---@param issue_id string
 local function get_issue(issue_id)
-	local response = curl.get("https://" .. config.domain .. "/rest/api/3/issue/" .. issue_id, {
-		headers = {
-			["Content-Type"] = "application/json",
-			["Authorization"] = "Basic " .. Utils.b64encode(config.user .. ":" .. config.token),
-		},
+	local headers = {
+		["Content-Type"] = "application/json",
+	}
+	if config.auth_type == "Bearer" then
+		headers["Authorization"] = "Bearer " .. config.token
+	else
+		headers["Authorization"] = "Basic " .. Utils.b64encode(config.user .. ":" .. config.token)
+	end
+	local response = curl.get("https://" .. config.domain .. "/rest/api/" .. config.api_version .. "/issue/" .. issue_id, {
+		headers = headers,
 	})
 	if response.status < 400 then
 		return vim.fn.json_decode(response.body)
@@ -52,9 +61,9 @@ local function format_issue(issue)
 		"---",
 		"`" .. issue.fields.status.name .. "`" .. assignee,
 		"",
-		Utils.adf_to_markdown(issue.fields.description),
+		(config.api_version == 3 and Utils.adf_to_markdown(issue.fields.description)) or issue.fields.description,
 	}
-	vim.lsp.util.open_floating_preview(content, "markdown", { border = "rounded" })
+    return content
 end
 
 local Jira = {}
