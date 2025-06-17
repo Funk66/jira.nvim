@@ -13,7 +13,7 @@ local config = {
 	domain = vim.env.JIRA_DOMAIN,
 	user = vim.env.JIRA_USER,
 	token = vim.env.JIRA_API_TOKEN,
-	key = vim.env.JIRA_PROJECT_KEY or { "PM" },
+	key = vim.env.JIRA_PROJECT_KEY,
 	api_version = 3,
 	auth_type = "Basic",
 }
@@ -36,9 +36,10 @@ local function get_issue(issue_id)
 	else
 		headers["Authorization"] = "Basic " .. Utils.b64encode(config.user .. ":" .. config.token)
 	end
-	local response = curl.get("https://" .. config.domain .. "/rest/api/" .. config.api_version .. "/issue/" .. issue_id, {
-		headers = headers,
-	})
+	local response =
+		curl.get("https://" .. config.domain .. "/rest/api/" .. config.api_version .. "/issue/" .. issue_id, {
+			headers = headers,
+		})
 	if response.status < 400 then
 		return vim.fn.json_decode(response.body)
 	else
@@ -46,8 +47,8 @@ local function get_issue(issue_id)
 	end
 end
 
--- @param issue table
--- @returns string[]
+---@param issue table
+---@return string[]
 local function format_issue(issue)
 	local assignee = ""
 	if issue.fields.assignee ~= vim.NIL then
@@ -56,14 +57,22 @@ local function format_issue(issue)
 			assignee = " - @" .. string.sub(issue.fields.assignee.displayName, i, j)
 		end
 	end
+
+	local description_content
+	if config.api_version == 3 then
+		description_content = Utils.adf_to_markdown(issue.fields.description)
+	else
+		description_content = issue.fields.description
+	end
+
 	local content = {
 		issue.fields.summary,
 		"---",
 		"`" .. issue.fields.status.name .. "`" .. assignee,
 		"",
-		(config.api_version == 3 and Utils.adf_to_markdown(issue.fields.description)) or issue.fields.description,
+		description_content,
 	}
-    return content
+	return content
 end
 
 local Jira = {}
@@ -120,6 +129,15 @@ end
 function Jira.setup(opts)
 	opts = opts or {}
 	config = vim.tbl_deep_extend("force", config, opts)
+
+	if config.auth_type == "Basic" and (not config.user or config.user == "") then
+		vim.notify(
+			"The parameter `user` is required when `auth_type` is 'Basic'.",
+			vim.log.levels.ERROR,
+			{ title = "Jira configuration error" }
+		)
+	end
+
 	vim.api.nvim_create_user_command("JiraView", Jira.view_issue, {})
 	vim.api.nvim_create_user_command("JiraOpen", Jira.open_issue, {})
 	return config

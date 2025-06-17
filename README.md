@@ -43,6 +43,20 @@ require("jira").setup({
 })
 ```
 
+### Self-hosted instances
+
+Version 3 of the API is currently exclusive of the _Jira Cloud_ offering.
+Use the following settings for _Jira Server_:
+
+```lua
+require("jira").setup({
+  token = "...", -- Personal Access Token
+  api_version = 2,
+  auth_method = "Bearer",
+  ...
+})
+```
+
 ## Usage
 
 Place the cursor over a Jira issue id and press:
