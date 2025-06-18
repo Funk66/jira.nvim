@@ -57,12 +57,20 @@ local function format_issue(issue)
 			assignee = " - @" .. string.sub(issue.fields.assignee.displayName, i, j)
 		end
 	end
+
+	local description_content
+	if config.api_version == 3 then
+		description_content = Utils.adf_to_markdown(issue.fields.description)
+	else
+		description_content = issue.fields.description
+	end
+
 	local content = {
 		issue.fields.summary,
 		"---",
 		"`" .. issue.fields.status.name .. "`" .. assignee,
 		"",
-		(config.api_version == 3 and Utils.adf_to_markdown(issue.fields.description)) or issue.fields.description,
+		description_content,
 	}
 	return content
 end
